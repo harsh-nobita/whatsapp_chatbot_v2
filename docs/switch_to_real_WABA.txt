@@ -1,0 +1,92 @@
+📌 Switch to Real WABA Number — Checklist
+
+1️⃣ Environment Variables
+
+Update your .env file (or Render environment variables):
+
+# Your production access token (long-lived)
+ACCESS_TOKEN=<your_long_lived_production_token>
+
+# Your real WhatsApp Business Number ID
+PHONE_NUMBER_ID=<your_real_waba_phone_number_id>
+
+# Custom verify token for webhook
+VERIFY_TOKEN=<your_custom_verify_token>
+
+
+⚠️ Remove any sandbox-only tokens or phone number IDs.
+
+2️⃣ Update webhook.py
+
+Ensure your code uses environment variables, not hard-coded sandbox values:
+
+phone_number_id = os.getenv("PHONE_NUMBER_ID")
+
+
+Webhook code for sending messages:
+
+reply_text = generate_reply(msg_body, sender_name)
+send_text_message(phone_number_id, from_number, reply_text)
+
+
+No other changes are needed in FastAPI code — the same endpoints /webhook for GET and POST work for real WABA.
+
+3️⃣ Update whatsapp_api.py
+
+Make sure send_text_message uses the production phone number ID and access token:
+
+import os
+import requests
+
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
+
+def send_text_message(phone_number_id: str, to_number: str, message_text: str):
+    url = f"https://graph.facebook.com/v20.0/{phone_number_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to_number,
+        "type": "text",
+        "text": {"body": message_text}
+    }
+    response = requests.post(url, json=payload, headers=headers)
+    print("Message sent response:", response.status_code, response.text)
+
+4️⃣ Update Meta Webhook for Production
+
+Go to Meta Business Manager → WhatsApp → Settings → Webhooks.
+
+Add your Render webhook URL (e.g., https://your-app.onrender.com/webhook).
+
+Use your VERIFY_TOKEN.
+
+Click Verify and Save — you should see Webhook verified ✅.
+
+Production WABA allows messages from any number, unlike sandbox.
+
+5️⃣ Test the Bot
+
+Send a WhatsApp message from any real number to your WABA number.
+
+Check Render logs — it should show:
+
+📩 Message from <user_number> (<user_name>): <message_text>
+✅ Message sent response: 200
+
+
+Bot replies automatically based on your responder.py logic.
+
+6️⃣ Optional / Recommended
+
+Use long-lived token for production.
+
+Log all messages to a database (SQLite, PostgreSQL, or MongoDB).
+
+For proactive messages, create message templates in Meta.
+
+Keep a backup of sandbox credentials separately for testing.
+
+This single checklist covers all environment and code changes to switch from sandbox → production WABA.

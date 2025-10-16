@@ -1,34 +1,32 @@
-# responder.py
+# app/responder.py
 
-def generate_reply(message_text: str, sender_name: str = ""):
+from .knowledge_base import query_knowledge_base
+
+# List of greeting keywords
+GREETINGS = ["hi", "hello", "hey", "hii", "good morning", "good evening"]
+
+def generate_reply(message_text: str, sender_name: str = "") -> str:
     """
-    Basic rule-based response generator.
-    You can later extend this to use OpenAI or other AI APIs.
+    Generates a reply for incoming WhatsApp messages.
+    
+    1. If message is a greeting, respond with a personalized greeting.
+    2. Otherwise, query the knowledge base for an answer.
     """
-    message_text = message_text.strip().lower()
+    message_text_clean = message_text.strip().lower()
 
-    # Greeting keywords
-    greetings = ["hi", "hello", "hey", "hii", "good morning", "good evening", "good afternoon"]
+    # 1️⃣ Handle greetings
+    if message_text_clean in GREETINGS:
+        return f"👋 Hi {sender_name or 'there'}! How can I help you today? You can ask any question or type 'faq'."
 
-    # Check for greeting
-    if message_text in greetings:
-        return (
-            f"👋 Hi {sender_name or 'there'}!\n\n"
-            "Welcome to *Harsh's Smart Agent!* 🤖\n\n"
-            "I'm here to help you. Please choose one of the options below:\n"
-            "1️⃣ Know about our services\n"
-            "2️⃣ Get contact details\n"
-            "3️⃣ Talk to support\n\n"
-            "Type a number (1–3) to continue."
-        )
+    # 2️⃣ Optional: handle 'faq' keyword specifically
+    if message_text_clean == "faq":
+        return "Sure! Ask me anything about our services or products, and I will help you."
 
-    # Option-based replies
-    if message_text == "1":
-        return "📘 We provide AI-based automation, chatbots, and data solutions."
-    elif message_text == "2":
-        return "📞 You can reach us at +91-9999070861 or email harshno@gmail.com"
-    elif message_text == "3":
-        return "💬 Please wait while we connect you to our support team."
+    # 3️⃣ Query knowledge base for all other messages
+    answer = query_knowledge_base(message_text)
+    
+    # If knowledge base fails to provide an answer, fallback response
+    if not answer or answer.strip() == "":
+        return "Sorry, I couldn't find an answer to your question. Can you please rephrase?"
 
-    # Default fallback
-    return "🤔 Sorry, I didn’t understand that. Please type *hi* to start again."
+    return answer
