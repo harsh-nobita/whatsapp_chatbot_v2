@@ -10,6 +10,17 @@ uvicorn main:app --reload
 ---------------------------------------------------------------------------------------
 
 ARCHITECTURE :-
+Working Architecture
+
+User (you) send a WhatsApp message ➜ to your Meta sandbox number.
+
+Meta (WhatsApp Business API) sends that message as a webhook ➜ to your FastAPI /webhook endpoint on Render.
+
+FastAPI app (via webhook.py) parses the message.
+
+It calls responder.py to generate a reply (using your logic / OpenAI / etc.).
+
+Then whatsapp_api.py sends the response message back to the user through Meta Graph API using your access token.
 
 
 

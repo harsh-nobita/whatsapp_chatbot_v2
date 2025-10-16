@@ -46,8 +46,11 @@ async def receive_webhook(request: Request):
 
                         print(f"📩 Message from {from_number}: {msg_body}")
 
-                        reply_text = generate_reply(msg_body)
+                        reply_text = generate_reply(msg_body, sender_name)
                         send_text_message(phone_number_id, from_number, reply_text)
+                        sender_name = value["contacts"][0]["profile"].get("name", "")
+                        
+
 
         return JSONResponse(content={"status": "received"}, status_code=200)
 
