@@ -1,32 +1,46 @@
-# app/responder.py
+import os
+from openai import OpenAI
+from dotenv import load_dotenv
 
-from .knowledge_base import query_knowledge_base
+# Load environment variables (like API key)
+load_dotenv()
 
-# List of greeting keywords
-GREETINGS = ["hi", "hello", "hey", "hii", "good morning", "good evening"]
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generate_reply(message_text: str, sender_name: str = "") -> str:
+# Custom greeting (optional)
+def custom_greeting(user_name: str = None) -> str:
+    if user_name:
+        return f"Hello {user_name}! 👋 How can I help you today?"
+    else:
+        return "Hello! 👋 How can I assist you today?"
+
+def generate_reply(message: str, user_name: str = None) -> str:
     """
-    Generates a reply for incoming WhatsApp messages.
-    
-    1. If message is a greeting, respond with a personalized greeting.
-    2. Otherwise, query the knowledge base for an answer.
+    Generate a smart reply using OpenAI's GPT model directly.
+    No local knowledge base required.
     """
-    message_text_clean = message_text.strip().lower()
 
-    # 1️⃣ Handle greetings
-    if message_text_clean in GREETINGS:
-        return f"👋 Hi {sender_name or 'there'}! How can I help you today? You can ask any question or type 'faq'."
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a friendly and helpful AI assistant."},
+                {"role": "user", "content": message}
+            ],
+            temperature=0.7,
+            max_tokens=300
+        )
 
-    # 2️⃣ Optional: handle 'faq' keyword specifically
-    if message_text_clean == "faq":
-        return "Sure! Ask me anything about our services or products, and I will help you."
+        reply = response.choices[0].message.content.strip()
 
-    # 3️⃣ Query knowledge base for all other messages
-    answer = query_knowledge_base(message_text)
-    
-    # If knowledge base fails to provide an answer, fallback response
-    if not answer or answer.strip() == "":
-        return "Sorry, I couldn't find an answer to your question. Can you please rephrase?"
+        # Add a greeting if user just started chatting
+        if "hi" in message.lower() or "hello" in message.lower():
+            greeting = custom_greeting(user_name)
+            reply = f"{greeting}\n\n{reply}"
 
-    return answer
+        return reply
+
+    except Exception as e:
+        print(f"Error in generate_reply: {e}")
+        return "Sorry, I'm having trouble connecting to OpenAI API right now."
+
