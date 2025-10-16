@@ -12,25 +12,17 @@ VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "mybotverify")
 router = APIRouter()
 
 @router.get("/webhook", response_class=PlainTextResponse)
-async def verify_webhook(mode: str = None, challenge: str = None, verify_token: str = None):
-    """
-    Webhook verification endpoint for Meta (GET).
-    Meta will call this URL with hub.mode, hub.challenge, hub.verify_token (as query params).
-    """
-    # Meta uses 'hub.' prefix in older docs; FastAPI maps query args without the prefix,
-    # but when using the real webhook, Meta sends query param names as:
-    #   'hub.mode', 'hub.challenge', 'hub.verify_token'
-    # FastAPI won't map dotted names automatically; if you see None here, use Request-based parsing instead.
-    # To be robust, also check request.query_params below.
-    from fastapi import Request
-    # If parameters are present, use them; otherwise attempt to parse raw query params in Request.
-    # However for safety, just implement simple check:
-    if verify_token is None:
-        # fallback: try to use Request object to get 'hub.verify_token' if needed
-        raise HTTPException(status_code=400, detail="Missing verify_token in query")
+async def verify_webhook(request: Request):
+    # Meta sends: hub.mode, hub.challenge, hub.verify_token as query params
+    params = request.query_params
+    mode = params.get("hub.mode")
+    challenge = params.get("hub.challenge")
+    verify_token = params.get("hub.verify_token")
+
     if mode == "subscribe" and verify_token == VERIFY_TOKEN:
-        return PlainTextResponse(challenge)
-    raise HTTPException(status_code=403, detail="Verification token mismatch")
+        return PlainTextResponse(content=challenge, status_code=200)
+    
+    return PlainTextResponse(content="Verification failed", status_code=403)
 
 @router.post("/webhook")
 async def receive_webhook(request: Request):
