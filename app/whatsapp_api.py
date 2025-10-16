@@ -1,3 +1,4 @@
+# app/whatsapp_api.py
 import os
 import requests
 from dotenv import load_dotenv
@@ -5,43 +6,26 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
-GRAPH_API_VERSION = "v17.0"  # adjust if Meta expects a different version
-GRAPH_API_BASE = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 
-if not ACCESS_TOKEN or not PHONE_NUMBER_ID:
-    raise RuntimeError("ACCESS_TOKEN and PHONE_NUMBER_ID must be set in .env")
-
-def send_text_message(to: str, message: str) -> dict:
+def send_text_message(phone_number_id: str, to_number: str, message_text: str):
     """
-    Send a plain text message via WhatsApp Cloud API.
-    - `to` must be full phone number with country code, like '+9199xxxxxxx'
-    - `message` is the text body
-    Returns parsed JSON response from Meta or raises an error on failure.
+    Send a WhatsApp text message using the Meta Graph API.
     """
-    url = f"{GRAPH_API_BASE}/{PHONE_NUMBER_ID}/messages"
+    url = f"https://graph.facebook.com/v20.0/{phone_number_id}/messages"
     headers = {
         "Authorization": f"Bearer {ACCESS_TOKEN}",
         "Content-Type": "application/json"
     }
     payload = {
         "messaging_product": "whatsapp",
-        "to": to,
+        "to": to_number,
         "type": "text",
-        "text": {
-            "body": message
-        }
+        "text": {"body": message_text}
     }
 
-    resp = requests.post(url, json=payload, headers=headers, timeout=15)
-    try:
-        data = resp.json()
-    except ValueError:
-        resp.raise_for_status()
-        data = {"status_code": resp.status_code, "text": resp.text}
+    response = requests.post(url, headers=headers, json=payload)
 
-    if resp.status_code >= 400:
-        # For debugging, raise with helpful info
-        raise RuntimeError(f"WhatsApp API error {resp.status_code}: {data}")
-
-    return data
+    if response.status_code == 200:
+        print(f"✅ Sent reply: {message_text}")
+    else:
+        print(f"❌ Failed to send message: {response.status_code} - {response.text}")
